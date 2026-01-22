@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram - iPhone Emulator</title>
+    <style>
+        :root {
+            /* iPhone Emulator Variables */
+            --iphone-width: 393px;
+            --iphone-height: 852px;
+            --iphone-radius: 55px;
+            --screen-radius: 47px;
+            --island-width: 120px;
+            --island-height: 36px;
+            --island-radius: 16px;
+            --ios-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            --status-bar-height: 54px;
+            --safe-area-bottom: 34px;
+
+            /* Instagram Colors */
+            --ig-bg: #ffffff;
+            --ig-text: #000000;
+            --ig-text-secondary: #737373;
+            --ig-stroke: #dbdbdb;
+            --ig-blue: #0095f6;
+            --ig-red: #ed4956;
+            --ig-story-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            
+            /* Bottom Nav */
+            --nav-height: 49px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: var(--ios-font);
+            overflow: hidden;
+        }
+
+        /* --- iPhone Shell Styles --- */
+        .iphone-body {
+            width: calc(var(--iphone-width) + 12px);
+            height: calc(var(--iphone-height) + 12px);
+            background: #ffffff;
+            border: 2px solid #d1d1d6;
+            border-radius: var(--iphone-radius);
+            padding: 6px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .screen {
+            width: var(--iphone-width);
+            height: var(--iphone-height);
+            background: var(--ig-bg);
+            border-radius: var(--screen-radius);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Dynamic Island & Status Bar */
+        .dynamic-island {
+            width: var(--island-width);
+            height: var(--island-height);
+            background: #000;
+            border-radius: var(--island-radius);
+            position: absolute;
+            top: 11px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000;
+        }
+
+        .status-bar {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 44px;
+            padding: 0 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-bottom: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #000;
+            z-index: 2500;
+            pointer-events: none;
+        }
+        
+        .status-right { display: flex; align-items: center; gap: 6px; }
+        .battery-container { display: flex; align-items: center; gap: 1.5px; }
+        .battery-body {
+            width: 24.5px; height: 11.5px;
+            background: rgba(0,0,0,0.1); border: 1px solid #000;
+            border-radius: 4px; position: relative; padding: 1px; display: flex;
+        }
+        .battery-fill { height: 100%; width: 60%; background: #000; border-radius: 1.5px; }
+        .battery-body::after {
+            content: ''; position: absolute; right: -3.5px;
+            width: 2px; height: 4px; background-color: #000;
+            border-radius: 0 1px 1px 0; top: 50%; transform: translateY(-50%);
+        }
+
+        /* --- Instagram App Container --- */
+        #app-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding-top: var(--status-bar-height);
+            padding-bottom: calc(var(--nav-height) + var(--safe-area-bottom));
+            position: relative;
+        }
+
+        /* --- Top Bar --- */
+        .top-bar {
+            height: 44px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            background: var(--ig-bg);
+            z-index: 100;
+        }
+        .ig-logo svg { height: 29px; width: auto; display: block; }
+        
+        .top-actions {
+            display: flex;
+            gap: 24px;
+        }
+        .top-icon { width: 24px; height: 24px; cursor: pointer; }
+
+        /* --- Stories Area --- */
+        .stories-container {
+            padding: 8px 0;
+            border-bottom: 0.5px solid var(--ig-stroke);
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding-left: 16px;
+            padding-right: 16px;
+            scrollbar-width: none; /* Firefox */
+            flex-shrink: 0;
+        }
+        .stories-container::-webkit-scrollbar { display: none; }
+
+        .story-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+        .story-ring {
+            width: 66px;
+            height: 66px;
+            border-radius: 50%;
+            padding: 2px;
+            background: var(--ig-story-gradient);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .story-ring.seen {
+            background: #dbdbdb;
+        }
+        .story-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--ig-bg);
+            background: #eee;
+            overflow: hidden;
+        }
+        .story-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .story-username {
+            font-size: 11px;
+            color: var(--ig-text);
+            max-width: 64px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .my-story .story-ring { background: transparent; position: relative; }
+        .my-story .add-btn {
+            position: absolute;
+            bottom: 2px; right: 2px;
+            width: 20px; height: 20px;
+            background: var(--ig-blue);
+            border-radius: 50%;
+            border: 2px solid var(--ig-bg);
+            color: #fff;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 14px; font-weight: bold;
+        }
+
+        /* --- Feed Area --- */
+        .feed-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 20px;
+            scrollbar-width: none;
+        }
+        .feed-container::-webkit-scrollbar { display: none; }
+
+        .post {
+            padding-bottom: 16px;
+        }
+        .post-header {
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .post-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .post-user-avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: #eee;
+            overflow: hidden;
+        }
+        .post-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .post-more { cursor: pointer; }
+
+        .post-content {
+            width: 100%;
+            background: #f5f5f5;
+            position: relative;
+            min-height: 393px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .post-content img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        
+        .like-heart-animation {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0 0 10px rgba(0,0,0,0.3));
+        }
+        .like-heart-animation.active {
+            transform: translate(-50%, -50%) scale(1.2);
+            opacity: 1;
+        }
+
+        .post-actions {
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .action-left { display: flex; gap: 16px; }
+        .action-icon { width: 24px; height: 24px; cursor: pointer; transition: transform 0.1s; }
+        .action-icon:active { transform: scale(0.9); }
+        .action-icon.liked { fill: var(--ig-red); stroke: var(--ig-red); color: var(--ig-red); }
+        .action-icon.saved { fill: #000; }
+
+        .post-likes {
+            padding: 0 12px;
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+        .post-caption {
+            padding: 0 12px;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+        .post-caption .username { font-weight: 600; margin-right: 4px; }
+        .post-time {
+            padding: 0 12px;
+            font-size: 11px;
+            color: var(--ig-text-secondary);
+        }
+
+        /* --- Bottom Navigation --- */
+        .bottom-nav {
+            position: absolute;
+            bottom: var(--safe-area-bottom);
+            width: 100%;
+            height: var(--nav-height);
+            background: var(--ig-bg);
+            border-top: 0.5px solid var(--ig-stroke);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+        }
+        .nav-item {
+            cursor: pointer;
+            padding: 10px;
+        }
+        .nav-item svg { width: 24px; height: 24px; display: block; }
+        .nav-avatar {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 1px solid transparent;
+        }
+        .nav-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .nav-item.active .nav-avatar { border-color: #000; border-width: 2px; }
+
+        /* --- Pages --- */
+        .page {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            overflow: hidden;
+            height: 100%;
+        }
+        .page.active { display: flex; }
+
+        /* Search Page */
+        .search-header {
+            padding: 10px 16px;
+            background: var(--ig-bg);
+        }
+        .search-bar {
+            background: #efefef;
+            border-radius: 10px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--ig-text-secondary);
+            font-size: 14px;
+        }
+        .search-bar svg { width: 16px; height: 16px; color: #8e8e8e; }
+        .explore-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            overflow-y: auto;
+            padding-bottom: 20px;
+        }
+        .explore-item {
+            aspect-ratio: 1/1;
+            background: #eee;
+            position: relative;
+        }
+        .explore-item img { width: 100%; height: 100%; object-fit: cover; }
+        .explore-item:nth-child(3n) { grid-row: span 2; grid-column: span 1; aspect-ratio: 1/2; }
+
+        /* Profile Page */
+        .profile-header {
+            padding: 16px;
+        }
+        .profile-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .profile-pic {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: #eee;
+            margin-right: 20px;
+            overflow: hidden;
+            border: 1px solid var(--ig-stroke);
+        }
+        .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-stats {
+            display: flex;
+            gap: 20px;
+            text-align: center;
+            flex: 1;
+            justify-content: space-around;
+        }
+        .stat-num { font-weight: 700; font-size: 16px; display: block; }
+        .stat-label { font-size: 13px; color: #000; }
+        
+        .profile-bio {
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+        .bio-name { font-weight: 700; }
+        .bio-text { color: var(--ig-text); line-height: 1.4; }
+        
+        .profile-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .p-btn {
+            flex: 1;
+            background: #efefef;
+            border-radius: 6px;
+            padding: 7px 0;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        .profile-tabs {
+            display: flex;
+            border-top: 1px solid var(--ig-stroke);
+            height: 44px;
+        }
+        .p-tab {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        .p-tab.active { border-bottom: 1px solid #000; }
+        .p-tab svg { width: 24px; height: 24px; }
+        
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            overflow-y: auto;
+            padding-bottom: 20px;
+        }
+        .profile-item { aspect-ratio: 1/1; background: #f5f5f5; }
+        .profile-item img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Create Page Placeholder */
+        .create-page {
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            color: #fff;
+        }
+        
+        /* Reels Page Placeholder */
+        .reels-page {
+            background: #000;
+            position: relative;
+        }
+        .reel-video {
+            width: 100%; height: 100%;
+            object-fit: cover;
+        }
+        .reel-overlay {
+            position: absolute;
+            bottom: 20px; left: 16px;
+            color: #fff;
+            z-index: 10;
+        }
+        .reel-actions {
+            position: absolute;
+            bottom: 20px; right: 16px;
+            display: flex; flex-direction: column;
+            gap: 20px; color: #fff;
+            align-items: center;
+        }
+
+        /* Home Bar */
+        .home-bar-area {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 20px; /* larger hit area */
+            z-index: 5000;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 8px;
+            cursor: pointer;
+        }
+        .home-bar {
+            width: 120px;
+            height: 5px;
+            background: #000;
+            border-radius: 3px;
+            opacity: 0.3;
+        }
+
+        /* Animations */
+        @keyframes heartPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        .like-anim { animation: heartPulse 0.3s ease-in-out; color: var(--ig-red) !important; fill: var(--ig-red) !important; stroke: none !important; }
+
+        /* --- DM & Chat Views --- */
+        .dm-view, .chat-view, .ig-settings-modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; z-index: 2000;
+            display: flex; flex-direction: column;
+            transform: translateX(100%); transition: transform 0.3s ease;
+            padding-top: var(--status-bar-height);
+        }
+        .dm-view.active, .chat-view.active { transform: translateX(0); }
+        
+        .ig-settings-modal {
+            z-index: 3000;
+            transform: translateY(100%);
+        }
+        .ig-settings-modal.active { transform: translateY(0); }
+
+        .dm-header {
+            height: 44px; display: flex; align-items: center; padding: 0 16px;
+            border-bottom: 0.5px solid #dbdbdb; justify-content: space-between;
+        }
+        .dm-list { flex: 1; overflow-y: auto; }
+        .dm-item {
+            display: flex; align-items: center; padding: 10px 16px;
+            gap: 12px; cursor: pointer;
+        }
+        .dm-item:active { background-color: #f5f5f5; }
+        .dm-avatar { width: 56px; height: 56px; border-radius: 50%; background: #eee; overflow: hidden; border: 1px solid rgba(0,0,0,0.1); }
+        .dm-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .dm-info { flex: 1; }
+        .dm-name { font-size: 14px; font-weight: 400; color: #000; }
+        .dm-preview { font-size: 13px; color: #737373; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+
+        .chat-header {
+            height: 44px; display: flex; align-items: center; padding: 0 16px;
+            border-bottom: 0.5px solid #dbdbdb; gap: 15px;
+        }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: #fff; }
+        .ig-msg-row { display: flex; max-width: 70%; align-self: flex-start; margin-bottom: 8px; }
+        .ig-msg-row.mine { align-self: flex-end; justify-content: flex-end; }
+        .ig-msg-bubble {
+            padding: 10px 14px; border-radius: 22px; font-size: 15px; line-height: 1.4;
+            background: #efefef; color: #000;
+        }
+        .msg-reasoning {
+            font-size: 12px;
+            color: #666;
+            background-color: #f9f9f9;
+            border-left: 3px solid #ccc;
+            padding: 6px 10px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            max-width: 100%;
+        }
+        .ig-msg-row.mine .ig-msg-bubble {
+            background: #3797f0; color: #fff;
+        }
+        .chat-input-area {
+            min-height: 50px; padding: 8px 16px; 
+            display: flex; align-items: center; gap: 10px;
+            padding-bottom: max(8px, var(--safe-area-bottom));
+            background: #fff;
+        }
+        .chat-input {
+            flex: 1; background: #efefef; border: none; border-radius: 22px;
+            padding: 10px 16px; font-size: 15px; outline: none;
+        }
+        .typing-indicator { font-size: 12px; color: #999; margin-left: 10px; margin-bottom: 10px; }
+
+        /* --- Story Viewer --- */
+        .story-viewer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #222; z-index: 4000;
+            display: none; flex-direction: column;
+            transform-origin: center;
+        }
+        .story-viewer.active { display: flex; animation: storyZoomIn 0.2s ease-out; }
+        
+        @keyframes storyZoomIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .story-progress-bar {
+            position: absolute; top: 10px; left: 0; width: 100%;
+            padding: 0 10px; display: flex; gap: 4px; z-index: 4010;
+            margin-top: var(--safe-area-top, 44px); /* Fallback or variable */
+        }
+        /* Dynamic island adjustment */
+        .screen:has(.dynamic-island) .story-progress-bar {
+             margin-top: 14px;
+        }
+
+        .progress-segment {
+            flex: 1; height: 2px; background: rgba(255,255,255,0.3);
+            border-radius: 2px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; width: 0%; background: #fff;
+            /* transition is handled via JS or CSS animation depending on implementation logic */
+        }
+        
+        .story-header {
+            position: absolute; top: 24px; left: 0; width: 100%;
+            padding: 12px 16px; display: flex; align-items: center;
+            justify-content: space-between; z-index: 4010;
+            margin-top: 10px;
+        }
+        .story-user-info { display: flex; align-items: center; gap: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+        .story-user-avatar { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); }
+        .story-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .story-user-name { font-weight: 600; font-size: 14px; }
+        .story-time { opacity: 0.8; font-size: 13px; font-weight: 400; }
+        .story-close { color: #fff; cursor: pointer; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3)); padding: 5px;}
+        
+        .story-content {
+            flex: 1; width: 100%; height: 100%; position: relative;
+            display: flex; align-items: center; justify-content: center;
+            background: #000;
+        }
+        .story-media { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+        
+        /* Touch Areas for navigation */
+        .story-nav-area {
+            position: absolute; top: 0; height: 85%; width: 100%; z-index: 4005; display: flex;
+        }
+        .story-touch-left { width: 30%; height: 100%; }
+        .story-touch-right { width: 70%; height: 100%; } 
+
+        .story-reply-area {
+             position: absolute; bottom: 0; width: 100%;
+             padding: 20px 16px; padding-bottom: max(20px, var(--safe-area-bottom));
+             display: flex; gap: 16px; align-items: center; z-index: 4010;
+             background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+        }
+        .story-input {
+            flex: 1; border: 1px solid rgba(255,255,255,0.5); border-radius: 24px;
+            padding: 12px 20px; color: #fff; font-size: 14px;
+            background: rgba(0,0,0,0.1); backdrop-filter: blur(5px);
+        }
+        .story-action { color: #fff; width: 28px; height: 28px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="iphone-body">
+        <div class="screen">
+            <!-- System Status -->
+            <div class="dynamic-island"></div>
+            <div class="status-bar">
+                <div class="status-left">01:20</div>
+                <div class="status-right">
+                    <span>5G</span>
+                    <svg width="16" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                        <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+                    </svg>
+                    <div class="battery-container">
+                        <div class="battery-body">
+                            <div class="battery-fill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="app-container">
+                
+                <!-- HOME TAB -->
+                <div id="tab-home" class="page active">
+                    <div class="top-bar">
+                        <div class="ig-logo">
+                             <svg viewBox="0 0 103 29">
+                                <path d="M41.7 18.2c2.1 0 3.3-1.1 3.3-2.9V6.4h-2.6v8.4c0 1-.5 1.5-1.5 1.5s-1.5-.5-1.5-1.5V6.4h-2.6v8.9c0 1.8 1.2 2.9 3.3 2.9h1.6zm-17 0c2.1 0 3.3-1.1 3.3-2.9V9.8h-2.6v5c0 1-.5 1.5-1.5 1.5s-1.5-.5-1.5-1.5v-5h-2.6v5.5c0 1.8 1.2 2.9 3.3 2.9h1.6zm23.6-2.5c0-1.7-1.3-2.6-2.8-2.6-1.5 0-2.6.9-2.6 2.6 0 1.7 1.1 2.6 2.6 2.6 1.5 0 2.8-.9 2.8-2.6zm2.6 0c0 2.8-2.2 4.7-5.4 4.7-3.2 0-5.2-1.9-5.2-4.7 0-2.8 2-4.7 5.2-4.7 3.2 0 5.4 1.9 5.4 4.7zm11.7-6.2h-2.6v1.9h-1.6v2.1h1.6v3.2c0 1.5.7 2.2 2.2 2.2h1.6v-2.1h-1.2c-.4 0-.6-.2-.6-.6v-2.7h1.9v-2.1h-1.9V9.5h.6zm-59.5 2h-1.7l-2.4 6.7h2.7l.4-1.3h2.6l.4 1.3h2.8l-2.5-6.7h-1.7l-2.4 6.7h-.3l2.1-6.7zm-2.1-5.1h2.6v9.2H.1V6.4h2.6v-2h-.1zm28.9 0h2.6v9.2h-2.6V6.4h.1v-2zm-12.2 0h2.6v1.9h-1.6v2.1h1.6v3.2c0 1.5.7 2.2 2.2 2.2h1.6v-2.1h-1.2c-.4 0-.6-.2-.6-.6v-2.7h1.9v-2.1h-1.9V6.4h-.6zm66.1 2h-1.7l-2.4 6.7h2.7l.4-1.3h2.6l.4 1.3h2.8l-2.5-6.7h-1.7l-2.4 6.7h-.3l2.1-6.7zm-2.1-5.1h2.6v9.2h-2.6V6.4h-.1v-2zm12.3 2.1c-.8-.5-1.7-.8-2.5-.8-1.2 0-1.7.5-1.7 1.2 0 .9 1.1 1.1 2.6 1.6 2.1.7 3.1 1.6 3.1 3.3 0 2.3-1.9 3.9-4.7 3.9-1.3 0-2.8-.5-3.8-1.1l.8-2c.9.5 2 .9 3 .9 1.2 0 1.9-.4 1.9-1.4 0-.9-1-1.1-2.5-1.6-2.2-.7-3.2-1.7-3.2-3.4 0-2.2 1.8-3.7 4.5-3.7 1.2 0 2.4.3 3.3.8l-.8 2.3zm-5.7-2.1h2.6v9.2"></path>
+                             </svg>
+                        </div>
+                        <div class="top-actions">
+                             <svg class="top-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                             <svg class="top-icon" onclick="openDM()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        </div>
+                    </div>
+                    
+                    <div class="stories-container" id="stories-container">
+                        <!-- My Story -->
+                        <div class="story-item my-story">
+                            <div class="story-ring">
+                                <div class="story-avatar">
+                                    <img src="https://ui-avatars.com/api/?name=Me&background=random" alt="Me">
+                                </div>
+                                <div class="add-btn">+</div>
+                            </div>
+                            <div class="story-username">Your story</div>
+                        </div>
+                        <!-- Other stories will be injected via JS -->
+                    </div>
+
+                    <div class="feed-container" id="feed-container">
+                        <!-- Posts injected via JS -->
+                    </div>
+                </div>
+
+                <!-- SEARCH TAB -->
+                <div id="tab-search" class="page">
+                    <div class="search-header">
+                        <div class="search-bar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <span>Search</span>
+                        </div>
+                    </div>
+                    <div class="explore-grid" id="explore-grid">
+                        <!-- Explore items injected via JS -->
+                    </div>
+                </div>
+
+                <!-- CREATE TAB -->
+                <div id="tab-create" class="page create-page">
+                    <h2>Camera Interface</h2>
+                    <p style="margin-top:10px; opacity:0.7">Simulator Access Only</p>
+                </div>
+
+                <!-- REELS TAB -->
+                <div id="tab-reels" class="page reels-page">
+                    <img src="https://images.unsplash.com/photo-1542204165-65bf26472b9b?auto=format&fit=crop&w=800&q=80" class="reel-video">
+                    <div class="reel-overlay">
+                         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                             <div style="width:32px;height:32px;border-radius:50%;background:#fff;overflow:hidden;"><img src="https://ui-avatars.com/api/?name=Reel" style="width:100%"></div>
+                             <span style="font-weight:600">nature_lover</span>
+                             <span style="border:1px solid #fff;border-radius:4px;padding:2px 6px;font-size:12px">Follow</span>
+                         </div>
+                         <p>Beautiful cinematic view 🌲✨ #nature #reels</p>
+                    </div>
+                    <div class="reel-actions">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                        <span>245K</span>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <span>1.2K</span>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                    </div>
+                </div>
+
+                <!-- PROFILE TAB -->
+                <div id="tab-profile" class="page">
+                    <div class="top-bar">
+                         <div style="font-weight:700;font-size:22px;">my_profile</div>
+                         <div class="top-actions">
+                             <svg class="top-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                             <svg class="top-icon" onclick="openSettings()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                         </div>
+                    </div>
+                    <div class="feed-container">
+                        <div class="profile-header">
+                            <div class="profile-top">
+                                <div class="profile-pic">
+                                    <img src="https://ui-avatars.com/api/?name=Me&background=random" alt="Profile">
+                                </div>
+                                <div class="profile-stats">
+                                    <div><span class="stat-num">54</span><span class="stat-label">Posts</span></div>
+                                    <div><span class="stat-num">824</span><span class="stat-label">Followers</span></div>
+                                    <div><span class="stat-num">162</span><span class="stat-label">Following</span></div>
+                                </div>
+                            </div>
+                            <div class="profile-bio">
+                                <div class="bio-name">My Name</div>
+                                <div class="bio-text">Digital Creator 🎨<br>Travel & Photography 📸<br>📍 San Francisco</div>
+                            </div>
+                            <div class="profile-actions">
+                                <div class="p-btn">Edit Profile</div>
+                                <div class="p-btn">Share Profile</div>
+                            </div>
+                        </div>
+                        <div class="profile-tabs">
+                            <div class="p-tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg></div>
+                            <div class="p-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg></div>
+                        </div>
+                        <div class="profile-grid" id="profile-grid">
+                            <!-- Profile posts injected via JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div> <!-- End App Container -->
+            
+            <!-- Story Viewer -->
+            <div id="story-viewer" class="story-viewer">
+                <div class="story-progress-bar" id="story-progress-container">
+                    <!-- JS Injected -->
+                </div>
+                
+                <div class="story-header">
+                    <div class="story-user-info">
+                        <div class="story-user-avatar"><img id="story-view-avatar" src=""></div>
+                        <div class="story-user-name"><span id="story-view-name">username</span> <span class="story-time" id="story-view-time">2h</span></div>
+                    </div>
+                    <div class="story-close" onclick="closeStoryViewer()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </div>
+                </div>
+                
+                <div class="story-content" id="story-content-area">
+                    <img id="story-view-img" class="story-media" src="">
+                    
+                    <!-- Invisible Touch Layer -->
+                    <div class="story-nav-area">
+                        <div class="story-touch-left" id="story-touch-left"></div>
+                        <div class="story-touch-right" id="story-touch-right"></div>
+                    </div>
+                </div>
+
+                <div class="story-reply-area">
+                    <div class="story-input">Send message</div>
+                    <svg class="story-action" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    <svg class="story-action" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </div>
+            </div>
+
+            <!-- DM List View -->
+            <div id="view-dm" class="dm-view">
+                <div class="dm-header">
+                    <svg onclick="closeDM()" style="width:28px;height:28px;cursor:pointer;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    <div style="font-weight:700;font-size:18px;">Direct</div>
+                    <div style="width:28px;"></div>
+                </div>
+                <div class="dm-list" id="dm-list-container">
+                    <!-- DM items injected via JS -->
+                </div>
+            </div>
+
+            <!-- Chat Thread View -->
+            <div id="view-chat-thread" class="chat-view">
+                <div class="chat-header">
+                    <svg onclick="closeChat()" style="width:28px;height:28px;cursor:pointer;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div id="chat-header-avatar" style="width:28px;height:28px;border-radius:50%;background:#eee;overflow:hidden;"><img src="" style="width:100%;height:100%;object-fit:cover;"></div>
+                        <div id="chat-header-name" style="font-weight:600;font-size:16px;">User</div>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input-area">
+                    <div style="width:36px;height:36px;border-radius:50%;background:#3797f0;display:flex;align-items:center;justify-content:center;margin-right:8px;">
+                         <svg viewBox="0 0 24 24" fill="#fff" style="width:20px;height:20px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H8l4-4 4 4h-3v4h-2z"/></svg>
+                    </div>
+                    <input type="text" class="chat-input" id="ig-chat-input" placeholder="Message...">
+                    <div style="color:#3797f0;font-weight:600;cursor:pointer;margin-left:8px;" onclick="sendIGMessage()">Send</div>
+                </div>
+            </div>
+
+            <!-- Settings Modal -->
+            <div id="modal-ig-settings" class="ig-settings-modal">
+                <div class="dm-header">
+                    <svg onclick="closeSettings()" style="width:28px;height:28px;cursor:pointer;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    <div style="font-weight:700;font-size:18px;">Settings</div>
+                    <div style="width:28px;"></div>
+                </div>
+                <div style="padding:20px;">
+                     <div style="background:#f9f9f9;border-radius:8px;padding:20px;">
+                        <div style="font-weight:600;margin-bottom:10px;font-size:16px;">AI Configuration</div>
+                        <div style="font-size:14px;color:#666;line-height:1.5;margin-bottom:20px;">
+                            API settings are now managed globally. Please use the system "Settings" app to configure your AI credentials.
+                        </div>
+                        <div style="font-size:13px;color:#333;padding:10px;background:#efefef;border-radius:6px;">
+                            Current Status: <span id="ig-global-status" style="font-weight:bold;">Checking...</span>
+                        </div>
+                     </div>
+                </div>
+            </div>
+
+            <!-- Bottom Navigation -->
+            <div class="bottom-nav">
+                <div class="nav-item active" onclick="switchTab('home')">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                </div>
+                <div class="nav-item" onclick="switchTab('search')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </div>
+                <div class="nav-item" onclick="switchTab('create')">
+                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                </div>
+                <div class="nav-item" onclick="switchTab('reels')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+                </div>
+                <div class="nav-item" onclick="switchTab('profile')">
+                    <div class="nav-avatar">
+                        <img src="https://ui-avatars.com/api/?name=Me&background=random" alt="Profile">
+                    </div>
+                </div>
+            </div>
+
+            <div class="home-bar-area" onclick="navigateWithTransition('index.html')">
+                <div class="home-bar"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Mock Data ---
+        const stories = [
+            { 
+                user: 'alex_photo', 
+                img: 'https://ui-avatars.com/api/?name=Alex',
+                items: [
+                    { type: 'image', url: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=400&q=80', time: '2h' },
+                    { type: 'image', url: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=400&q=80', time: '1h' }
+                ]
+            },
+            { 
+                user: 'foodie_jane', 
+                img: 'https://ui-avatars.com/api/?name=Jane',
+                items: [
+                    { type: 'image', url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', time: '5h' }
+                ]
+            },
+            { 
+                user: 'travel_mike', 
+                img: 'https://ui-avatars.com/api/?name=Mike',
+                items: [
+                    { type: 'image', url: 'https://images.unsplash.com/photo-1500835556837-99ac94a94552?auto=format&fit=crop&w=400&q=80', time: '3h' },
+                    { type: 'image', url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=400&q=80', time: '1h' }
+                ]
+            },
+            { 
+                user: 'design_pro', 
+                img: 'https://ui-avatars.com/api/?name=Des',
+                items: [
+                    { type: 'image', url: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=400&q=80', time: '6h' }
+                ]
+            },
+            { 
+                user: 'lisa_art', 
+                img: 'https://ui-avatars.com/api/?name=Lisa',
+                items: [
+                    { type: 'image', url: 'https://images.unsplash.com/photo-1493863641943-9b68992a8d07?auto=format&fit=crop&w=400&q=80', time: '8h' }
+                ]
+            }
+        ];
+
+        const posts = [
+            {
+                user: 'alex_photo',
+                avatar: 'https://ui-avatars.com/api/?name=Alex',
+                image: 'https://images.unsplash.com/photo-1707343843437-caacff5cfa74?auto=format&fit=crop&w=800&q=80',
+                likes: 124,
+                caption: 'Sunset vibes 🌅',
+                time: '2 hours ago'
+            },
+            {
+                user: 'foodie_jane',
+                avatar: 'https://ui-avatars.com/api/?name=Jane',
+                image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+                likes: 89,
+                caption: 'Best brunch ever! 🥑🍳 #foodie',
+                time: '5 hours ago'
+            },
+            {
+                user: 'travel_mike',
+                avatar: 'https://ui-avatars.com/api/?name=Mike',
+                image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=800&q=80',
+                likes: 432,
+                caption: 'Switzerland is unreal 🏔️',
+                time: '1 day ago'
+            }
+        ];
+
+        function navigateWithTransition(url) {
+            window.location.href = url;
+        }
+
+        // --- Init Function ---
+        window.addEventListener('load', () => {
+            renderStories();
+            renderPosts();
+            renderExplore();
+            renderProfileGrid();
+            autoResizeEmulator();
+            document.body.classList.add('page-loaded');
+        });
+
+        // --- Render Logic ---
+        function renderStories() {
+            const container = document.getElementById('stories-container');
+            // Keep "My Story"
+            const myStory = container.querySelector('.my-story');
+            container.innerHTML = '';
+            if(myStory) container.appendChild(myStory);
+
+            stories.forEach((story, index) => {
+                const el = document.createElement('div');
+                el.className = 'story-item';
+                el.onclick = () => openStoryViewer(index);
+                el.innerHTML = `
+                    <div class="story-ring">
+                        <div class="story-avatar">
+                            <img src="${story.img}" alt="${story.user}">
+                        </div>
+                    </div>
+                    <div class="story-username">${story.user}</div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function renderPosts() {
+            const container = document.getElementById('feed-container');
+            posts.forEach(post => {
+                const el = document.createElement('div');
+                el.className = 'post';
+                el.innerHTML = `
+                    <div class="post-header">
+                        <div class="post-user">
+                            <div class="post-user-avatar"><img src="${post.avatar}" alt=""></div>
+                            <span>${post.user}</span>
+                        </div>
+                        <div class="post-more">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                        </div>
+                    </div>
+                    <div class="post-content" ondblclick="triggerLike(this)">
+                        <img src="${post.image}" alt="Post Content">
+                        <svg class="like-heart-animation" viewBox="0 0 24 24" width="80" height="80" fill="white"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </div>
+                    <div class="post-actions">
+                        <div class="action-left">
+                            <svg class="action-icon btn-like" onclick="toggleLike(this)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                            <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                            <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </div>
+                        <div class="action-right">
+                            <svg class="action-icon btn-save" onclick="toggleSave(this)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                        </div>
+                    </div>
+                    <div class="post-likes">${post.likes} likes</div>
+                    <div class="post-caption"><span class="username">${post.user}</span> ${post.caption}</div>
+                    <div class="post-time">${post.time}</div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function renderExplore() {
+            const container = document.getElementById('explore-grid');
+            for(let i=0; i<15; i++) {
+                const el = document.createElement('div');
+                el.className = 'explore-item';
+                el.innerHTML = `<img src="https://picsum.photos/300/300?random=${i}" loading="lazy">`;
+                container.appendChild(el);
+            }
+        }
+
+        function renderProfileGrid() {
+            const container = document.getElementById('profile-grid');
+            for(let i=0; i<9; i++) {
+                const el = document.createElement('div');
+                el.className = 'profile-item';
+                el.innerHTML = `<img src="https://picsum.photos/300/300?random=${i+100}" loading="lazy">`;
+                container.appendChild(el);
+            }
+        }
+
+        // --- Interaction Logic ---
+        function switchTab(tabId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            // Show target page
+            document.getElementById('tab-' + tabId).classList.add('active');
+            
+            // Update Nav Icons
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (tabId === 'profile' && item.querySelector('.nav-avatar')) {
+                    // special case for profile
+                } else {
+                    const svg = item.querySelector('svg');
+                    if(svg) svg.setAttribute('fill', 'none'); 
+                    // This is a simplification; ideally we swap icons for filled/outlined versions
+                }
+            });
+
+            // Set active class on clicked item
+            const items = document.querySelectorAll('.nav-item');
+            const map = { 'home': 0, 'search': 1, 'create': 2, 'reels': 3, 'profile': 4 };
+            if (items[map[tabId]]) {
+                items[map[tabId]].classList.add('active');
+                const svg = items[map[tabId]].querySelector('svg');
+                if (svg) svg.setAttribute('fill', 'currentColor');
+            }
+        }
+
+        function toggleLike(btn) {
+            btn.classList.toggle('liked');
+            if(btn.classList.contains('liked')) {
+                btn.classList.add('like-anim');
+                setTimeout(() => btn.classList.remove('like-anim'), 300);
+            }
+        }
+
+        function toggleSave(btn) {
+            btn.classList.toggle('saved');
+        }
+
+        function triggerLike(postContent) {
+            const heart = postContent.querySelector('.like-heart-animation');
+            const likeBtn = postContent.nextElementSibling.querySelector('.btn-like');
+            
+            heart.classList.add('active');
+            setTimeout(() => heart.classList.remove('active'), 800);
+            
+            if (!likeBtn.classList.contains('liked')) {
+                toggleLike(likeBtn);
+            }
+        }
+
+        // --- Auto Resize (Shared Logic) ---
+        function autoResizeEmulator() {
+            const iphoneBody = document.querySelector('.iphone-body');
+            if (!iphoneBody) return;
+            const baseWidth = 393 + 12; 
+            const baseHeight = 852 + 12; 
+            const margin = 40; 
+            const availableWidth = window.innerWidth - margin;
+            const availableHeight = window.innerHeight - margin;
+            const scaleX = availableWidth / baseWidth;
+            const scaleY = availableHeight / baseHeight;
+            const scale = Math.min(scaleX, scaleY, 1.2); 
+            iphoneBody.style.transform = `scale(${scale})`;
+        }
+        window.addEventListener('resize', autoResizeEmulator);
+
+        // --- GLOBAL CONFIG SUPPORT ---
+        function getGlobalApiConfig() {
+            try {
+                const configs = JSON.parse(localStorage.getItem('api-configs') || '[]');
+                const defaultConfig = configs.find(c => c.isDefault) || configs[0];
+                const globalSettings = JSON.parse(localStorage.getItem('api-global-settings') || '{}');
+                const thinkingConfig = JSON.parse(localStorage.getItem('thinking-model-settings') || '{}');
+                return { config: defaultConfig, settings: globalSettings, thinking: thinkingConfig };
+            } catch (e) {
+                console.error("Error reading global config", e);
+                return { config: null, settings: {}, thinking: {} };
+            }
+        }
+
+        function updateGlobalConfigStatus() {
+            const statusEl = document.getElementById('ig-global-status');
+            if(!statusEl) return;
+            const { config } = getGlobalApiConfig();
+            if(config && config.url && config.key) {
+                statusEl.innerHTML = `✅ Connected: <strong>${config.name}</strong>`;
+                statusEl.style.color = 'green';
+            } else {
+                statusEl.innerHTML = `❌ Not Configured`;
+                statusEl.style.color = 'red';
+            }
+        }
+
+        // --- DM LOGIC ---
+        // Mock Data for Chats
+        let ig_chats = [
+            { id: '1', name: 'alex_photo', avatar: 'https://ui-avatars.com/api/?name=Alex', messages: [], lastMsg: 'Nice photo!', persona: '一位热爱摄影的博主，语气热情，喜欢用emoji' },
+            { id: '2', name: 'foodie_jane', avatar: 'https://ui-avatars.com/api/?name=Jane', messages: [], lastMsg: 'Where is this?', persona: '一位美食家，喜欢评论食物，语气亲切' }
+        ];
+
+        let activeChatId = null;
+
+        function openDM() {
+            renderDMList();
+            document.getElementById('view-dm').classList.add('active');
+        }
+
+        function closeDM() {
+            document.getElementById('view-dm').classList.remove('active');
+        }
+
+        function renderDMList() {
+            const container = document.getElementById('dm-list-container');
+            container.innerHTML = ig_chats.map(c => `
+                <div class="dm-item" onclick="openChat('${c.id}')">
+                    <div class="dm-avatar"><img src="${c.avatar}"></div>
+                    <div class="dm-info">
+                        <div class="dm-name">${c.name}</div>
+                        <div class="dm-preview">${c.lastMsg}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openChat(id) {
+            activeChatId = id;
+            const chat = ig_chats.find(c => c.id === id);
+            if(!chat) return;
+            
+            document.getElementById('chat-header-name').innerText = chat.name;
+            document.getElementById('chat-header-avatar').querySelector('img').src = chat.avatar;
+            document.getElementById('view-chat-thread').classList.add('active');
+            renderChatMessages();
+        }
+
+        function closeChat() {
+            activeChatId = null;
+            document.getElementById('view-chat-thread').classList.remove('active');
+        }
+
+        function renderChatMessages() {
+            if(!activeChatId) return;
+            const chat = ig_chats.find(c => c.id === activeChatId);
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = chat.messages.map(m => {
+                const reasoningHtml = m.reasoning ? `<div class="msg-reasoning">${m.reasoning}</div>` : '';
+                return `
+                <div class="ig-msg-row ${m.isMe ? 'mine' : ''}" style="flex-direction:column; align-items: ${m.isMe ? 'flex-end' : 'flex-start'}">
+                    ${!m.isMe ? reasoningHtml : ''}
+                    <div class="ig-msg-bubble">${m.text}</div>
+                </div>
+            `}).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendIGMessage() {
+            const input = document.getElementById('ig-chat-input');
+            const text = input.value.trim();
+            if(!text || !activeChatId) return;
+            
+            const chat = ig_chats.find(c => c.id === activeChatId);
+            chat.messages.push({ text: text, isMe: true });
+            chat.lastMsg = "You: " + text;
+            
+            input.value = '';
+            renderChatMessages();
+            renderDMList(); // Update preview
+            
+            // Trigger AI
+            triggerIGAIResponse(chat);
+        }
+
+        async function triggerIGAIResponse(chat) {
+            const { config, settings, thinking } = getGlobalApiConfig();
+            if (!config || !config.url || !config.key) {
+                console.warn("[IG AI] No Global API Config");
+                return;
+            }
+
+            // Show typing indicator
+            const container = document.getElementById('chat-messages');
+            const typingId = 'typing-' + Date.now();
+            const typingDiv = document.createElement('div');
+            typingDiv.id = typingId;
+            typingDiv.className = 'typing-indicator';
+            typingDiv.innerText = `${chat.name} is typing...`;
+            container.appendChild(typingDiv);
+            container.scrollTop = container.scrollHeight;
+
+            const systemPrompt = `You are roleplaying as ${chat.name} on Instagram DM.
+Persona: ${chat.persona || 'A friendly Instagram user.'}
+Style: Casual, short, using emojis, lower case mostly.
+Reply to the user's message.`;
+
+            const historyLimit = parseInt(settings.memoryCount) || 10;
+            const messages = [
+                { role: 'system', content: systemPrompt },
+                ...chat.messages.slice(-historyLimit).map(m => ({
+                    role: m.isMe ? 'user' : 'assistant',
+                    content: m.text
+                }))
+            ];
+
+            try {
+                let apiUrl = (config.url || '').replace(/\/$/, '');
+                let apiKey = config.key;
+                let model = config.model || 'gpt-3.5-turbo';
+                
+                if (thinking && thinking.thinking_endpoint && thinking.thinking_api_key) {
+                     apiUrl = thinking.thinking_endpoint.replace(/\/$/, '');
+                     apiKey = thinking.thinking_api_key;
+                     if (thinking.thinking_model_name) model = thinking.thinking_model_name;
+                }
+
+                const response = await fetch(`${apiUrl}/chat/completions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    body: JSON.stringify({ model, messages, temperature: 0.7 })
+                });
+
+                const data = await response.json();
+                const messageObj = data.choices?.[0]?.message || {};
+                const reply = messageObj.content || '...';
+                const reasoning = messageObj.reasoning_content || '';
+                
+                // Remove typing indicator
+                const el = document.getElementById(typingId);
+                if(el) el.remove();
+
+                // Add reply
+                chat.messages.push({ text: reply, isMe: false, reasoning: reasoning });
+                chat.lastMsg = reply;
+                
+                if(activeChatId === chat.id) {
+                    renderChatMessages();
+                }
+                renderDMList();
+
+            } catch (e) {
+                console.error("IG AI Error", e);
+                const el = document.getElementById(typingId);
+                if(el) el.remove();
+            }
+        }
+
+        // --- SETTINGS ---
+        function openSettings() {
+            updateGlobalConfigStatus();
+            document.getElementById('modal-ig-settings').classList.add('active');
+        }
+        function closeSettings() {
+            document.getElementById('modal-ig-settings').classList.remove('active');
+        }
+
+        // --- STORY VIEWER LOGIC ---
+        let currentStoryUserIndex = 0;
+        let currentStoryItemIndex = 0;
+        let storyTimer = null;
+        let storyProgress = 0;
+        let isPaused = false;
+        const STORY_DURATION = 5000; // 5 seconds per story
+        const TICK_RATE = 50; // update every 50ms
+
+        function openStoryViewer(userIndex) {
+            currentStoryUserIndex = userIndex;
+            currentStoryItemIndex = 0;
+            document.getElementById('story-viewer').classList.add('active');
+            renderStoryContent();
+        }
+
+        function closeStoryViewer() {
+            document.getElementById('story-viewer').classList.remove('active');
+            clearTimeout(storyTimer);
+            storyTimer = null;
+        }
+
+        function renderStoryContent() {
+            // Reset state
+            clearTimeout(storyTimer);
+            storyProgress = 0;
+            isPaused = false;
+
+            const userStory = stories[currentStoryUserIndex];
+            if (!userStory || !userStory.items || userStory.items.length === 0) {
+                closeStoryViewer();
+                return;
+            }
+
+            const item = userStory.items[currentStoryItemIndex];
+
+            // Update UI
+            document.getElementById('story-view-avatar').src = userStory.img;
+            document.getElementById('story-view-name').innerText = userStory.user;
+            document.getElementById('story-view-time').innerText = item.time;
+            document.getElementById('story-view-img').src = item.url;
+
+            // Render Progress Bars
+            const progressContainer = document.getElementById('story-progress-container');
+            progressContainer.innerHTML = '';
+            userStory.items.forEach((_, idx) => {
+                const segment = document.createElement('div');
+                segment.className = 'progress-segment';
+                const fill = document.createElement('div');
+                fill.className = 'progress-fill';
+                
+                // If past item, 100% full. If current, 0% (will animate). If future, 0%.
+                if (idx < currentStoryItemIndex) {
+                    fill.style.width = '100%';
+                } else if (idx === currentStoryItemIndex) {
+                    fill.id = 'current-story-fill';
+                    fill.style.width = '0%';
+                } else {
+                    fill.style.width = '0%';
+                }
+                
+                segment.appendChild(fill);
+                progressContainer.appendChild(segment);
+            });
+
+            // Start Timer
+            startStoryTimer();
+        }
+
+        function startStoryTimer() {
+            if (storyTimer) clearTimeout(storyTimer);
+            
+            const step = 100 * (TICK_RATE / STORY_DURATION);
+            const fillEl = document.getElementById('current-story-fill');
+
+            storyTimer = setInterval(() => {
+                if (isPaused) return;
+
+                storyProgress += step;
+                if (fillEl) fillEl.style.width = `${storyProgress}%`;
+
+                if (storyProgress >= 100) {
+                    nextStoryItem();
+                }
+            }, TICK_RATE);
+        }
+
+        function nextStoryItem() {
+            const userStory = stories[currentStoryUserIndex];
+            if (currentStoryItemIndex < userStory.items.length - 1) {
+                // Next item for same user
+                currentStoryItemIndex++;
+                renderStoryContent();
+            } else {
+                // Next user
+                if (currentStoryUserIndex < stories.length - 1) {
+                    currentStoryUserIndex++;
+                    currentStoryItemIndex = 0;
+                    renderStoryContent();
+                } else {
+                    // End of all stories
+                    closeStoryViewer();
+                }
+            }
+        }
+
+        function prevStoryItem() {
+            if (currentStoryItemIndex > 0) {
+                // Prev item same user
+                currentStoryItemIndex--;
+                renderStoryContent();
+            } else {
+                // Prev user
+                if (currentStoryUserIndex > 0) {
+                    currentStoryUserIndex--;
+                    // Go to last item of prev user
+                    currentStoryItemIndex = stories[currentStoryUserIndex].items.length - 1;
+                    renderStoryContent();
+                } else {
+                    // Start of all stories, restart current or close?
+                    // Let's just reset current
+                    currentStoryItemIndex = 0;
+                    renderStoryContent();
+                }
+            }
+        }
+
+        // --- Story Controls (Click & Hold) ---
+        const leftTouch = document.getElementById('story-touch-left');
+        const rightTouch = document.getElementById('story-touch-right');
+        
+        // Add event listeners for touch/click interaction
+        function setupStoryControls() {
+            const handleStart = () => { isPaused = true; };
+            const handleEnd = (isNext) => {
+                isPaused = false;
+                // Only trigger navigation if it was a short tap (handled by click event usually, but here we might want logic)
+                // For simplicity, we rely on click for navigation and mousedown/touchstart for pausing.
+                // However, standard click fires after mouseup.
+                // If we held for long, we don't want to skip immediately? Instagram logic: Hold pauses, release continues. Tap skips.
+                // To implement this simply: 
+                // We use click for navigation. Pause only pauses timer visually.
+            };
+
+            // Right (Next)
+            rightTouch.addEventListener('mousedown', () => isPaused = true);
+            rightTouch.addEventListener('touchstart', () => isPaused = true);
+            rightTouch.addEventListener('mouseup', () => isPaused = false);
+            rightTouch.addEventListener('touchend', () => isPaused = false);
+            rightTouch.addEventListener('click', (e) => {
+                // We need to ensure it wasn't a long press (drag/hold). 
+                // But simple implementation: just call next
+                // If it was paused for a long time, user likely "released" to continue watching, NOT skip.
+                // A true implementation distinguishes tap vs hold.
+                // For this demo: simple click = skip. Holding pauses, but release triggering click is annoying if you just wanted to pause.
+                // Improved logic: check hold duration.
+            });
+            
+            // Let's implement robust tap detection
+            let touchStartTime = 0;
+            
+            const onPointerDown = () => { isPaused = true; touchStartTime = Date.now(); };
+            const onPointerUp = (isNext) => { 
+                isPaused = false;
+                const duration = Date.now() - touchStartTime;
+                if (duration < 250) { // Short tap
+                    if(isNext) nextStoryItem();
+                    else prevStoryItem();
+                }
+            };
+
+            rightTouch.addEventListener('mousedown', onPointerDown);
+            rightTouch.addEventListener('touchstart', (e) => { e.preventDefault(); onPointerDown(); }); // preventDefault to stop mouse emulation
+            rightTouch.addEventListener('mouseup', () => onPointerUp(true));
+            rightTouch.addEventListener('touchend', (e) => { e.preventDefault(); onPointerUp(true); });
+
+            leftTouch.addEventListener('mousedown', onPointerDown);
+            leftTouch.addEventListener('touchstart', (e) => { e.preventDefault(); onPointerDown(); });
+            leftTouch.addEventListener('mouseup', () => onPointerUp(false));
+            leftTouch.addEventListener('touchend', (e) => { e.preventDefault(); onPointerUp(false); });
+        }
+        
+        setupStoryControls();
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Book</title>
+    <style>
+        :root {
+            --iphone-width: 393px;
+            --iphone-height: 852px;
+            --iphone-radius: 55px;
+            --screen-radius: 47px;
+            --island-width: 120px;
+            --island-height: 36px;
+            --island-radius: 16px;
+            --ios-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            
+            /* 韩系简约低饱和配色 */
+            --bg-color: #F9F9F9;
+            --card-bg: #FFFFFF;
+            --text-primary: #2C2C2E;
+            --text-secondary: #8E8E93;
+            --text-tertiary: #C7C7CC;
+            --accent-color: #7D8C9F; /* 低饱和蓝灰 */
+            --accent-warm: #D8CFC4; /* 奶茶色 */
+            --border-color: #F2F2F7;
+            --input-bg: #F2F2F7;
+            --shadow-soft: 0 8px 24px rgba(0,0,0,0.04);
+            --status-bar-height: 44px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: var(--ios-font);
+            overflow: hidden;
+        }
+
+        .iphone-body {
+            width: calc(var(--iphone-width) + 12px);
+            height: calc(var(--iphone-height) + 12px);
+            background: #ffffff;
+            border: 2px solid #d1d1d6;
+            border-radius: var(--iphone-radius);
+            padding: 6px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .screen {
+            width: var(--iphone-width);
+            height: var(--iphone-height);
+            background: var(--bg-color);
+            border-radius: var(--screen-radius);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Dynamic Island & Status Bar */
+        .dynamic-island {
+            width: var(--island-width);
+            height: var(--island-height);
+            background: #000;
+            border-radius: var(--island-radius);
+            position: absolute;
+            top: 11px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000;
+        }
+
+        .status-bar {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 44px;
+            padding: 0 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-bottom: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #000;
+            z-index: 2500;
+            pointer-events: none;
+        }
+        .status-right { display: flex; align-items: center; gap: 6px; }
+        .battery-container { display: flex; align-items: center; gap: 1.5px; }
+        .battery-body {
+            width: 24.5px; height: 11.5px; background: rgba(0,0,0,0.1);
+            border: 1px solid #000; border-radius: 4px; position: relative; padding: 1px; display: flex;
+        }
+        .battery-fill { height: 100%; width: 60%; background: #000; border-radius: 1.5px; }
+        .battery-body::after {
+            content: ''; position: absolute; right: -3.5px; width: 2px; height: 4px;
+            background-color: #000; border-radius: 0 1px 1px 0; top: 50%; transform: translateY(-50%);
+        }
+
+        /* App Header */
+        .app-header {
+            padding: 60px 24px 10px;
+            background: rgba(249, 249, 249, 0.8);
+            backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            position: sticky;
+            top: 0;
+        }
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .header-title { font-size: 24px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.5px; }
+        .header-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; font-weight: 400; }
+        
+        .header-right { display: flex; gap: 10px; }
+        .icon-btn {
+            width: 36px; height: 36px; border-radius: 50%; background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); cursor: pointer;
+            color: var(--text-primary);
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 24px 40px;
+            scrollbar-width: none;
+        }
+        .content-area::-webkit-scrollbar { display: none; }
+
+        /* World Cards */
+        .world-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-soft);
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #fff;
+        }
+        .world-card:active { transform: scale(0.98); }
+
+        .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .card-icon {
+            width: 48px; height: 48px; border-radius: 14px; background: var(--input-bg);
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+            color: var(--accent-color);
+        }
+        .card-actions { display: flex; gap: 8px; }
+        .action-btn-mini {
+            width: 28px; height: 28px; border-radius: 50%; background: #F2F2F7;
+            display: flex; align-items: center; justify-content: center; color: var(--text-secondary);
+            cursor: pointer;
+        }
+        .action-btn-mini.delete { color: #FF3B30; background: rgba(255, 59, 48, 0.1); }
+
+        .card-title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+        .card-desc { 
+            font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;
+            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+        }
+
+        .card-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+        .tag {
+            padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 500;
+            background: #F9F9F9; color: var(--text-secondary); border: 1px solid var(--border-color);
+        }
+        .tag.global {
+            background: var(--text-primary); color: #fff; border-color: var(--text-primary);
+        }
+
+        /* Floating Action Button */
+        .fab {
+            position: absolute; bottom: 30px; right: 24px;
+            width: 60px; height: 60px; border-radius: 30px;
+            background: var(--text-primary); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            cursor: pointer; z-index: 50; transition: transform 0.2s;
+        }
+        .fab:active { transform: scale(0.9); }
+        .fab svg { width: 28px; height: 28px; stroke-width: 2; }
+
+        /* Modal / Bottom Sheet */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3); backdrop-filter: blur(8px);
+            z-index: 2000; display: none; opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+
+        .bottom-sheet {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 85%;
+            background: #fff; border-radius: 32px 32px 0 0;
+            padding: 0; display: flex; flex-direction: column;
+            transform: translateY(100%);
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modal-overlay.active .bottom-sheet { transform: translateY(0); }
+
+        .sheet-header {
+            padding: 24px 24px 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .sheet-title { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+        .sheet-close { 
+            width: 32px; height: 32px; border-radius: 50%; background: var(--input-bg);
+            display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary);
+        }
+        .sheet-save {
+            font-size: 15px; font-weight: 600; color: #fff; background: var(--text-primary);
+            padding: 8px 16px; border-radius: 20px; cursor: pointer;
+        }
+
+        .sheet-content {
+            flex: 1; overflow-y: auto; padding: 24px;
+        }
+
+        .form-group { margin-bottom: 24px; }
+        .form-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; display: block; }
+        .form-input {
+            width: 100%; padding: 16px; border-radius: 16px; border: none;
+            background: var(--input-bg); font-size: 16px; color: var(--text-primary);
+            font-family: var(--ios-font); outline: none; transition: background 0.2s;
+        }
+        .form-input:focus { background: #EBEBF0; }
+        .form-textarea {
+            width: 100%; padding: 16px; border-radius: 16px; border: none;
+            background: var(--input-bg); font-size: 16px; color: var(--text-primary);
+            font-family: var(--ios-font); outline: none; resize: none; height: 180px; line-height: 1.5;
+        }
+
+        /* Switch */
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e5e5ea; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        input:checked + .slider { background-color: var(--text-primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* Home Indicator */
+        .home-indicator {
+            position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+            width: 120px; height: 5px; background: #000; border-radius: 3px; opacity: 0.3;
+            z-index: 9999; cursor: pointer;
+        }
+
+        /* Icons */
+        svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* Empty State */
+        .empty-state {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 60px 20px; text-align: center; opacity: 0.6;
+        }
+        .empty-icon { margin-bottom: 16px; color: var(--text-tertiary); }
+        .empty-text { font-size: 14px; color: var(--text-secondary); }
+
+    </style>
+</head>
+<body>
+
+    <div class="iphone-body">
+        <div class="screen">
+            <div class="dynamic-island"></div>
+
+            <div class="status-bar">
+                <div class="status-left">01:20</div>
+                <div class="status-right">
+                    <span>5G</span>
+                    <svg width="16" height="12" viewBox="0 0 24 24" stroke-width="2.2">
+                        <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                        <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+                    </svg>
+                    <div class="battery-container">
+                        <div class="battery-body">
+                            <div class="battery-fill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="app-header">
+                <div class="header-left">
+                    <div>
+                        <div class="header-title">World Book</div>
+                        <div class="header-subtitle">设定集管理</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-area" id="world-list">
+                <!-- 动态内容将插入这里 -->
+            </div>
+
+            <div class="fab" onclick="openSheet()">
+                <svg viewBox="0 0 24 24">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </div>
+
+            <!-- Home Indicator -->
+            <div class="home-indicator" onclick="goBack()"></div>
+
+            <!-- Add/Edit Sheet -->
+            <div class="modal-overlay" id="sheet-overlay">
+                <div class="bottom-sheet">
+                    <div class="sheet-header">
+                        <div class="sheet-close" onclick="closeSheet()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" stroke-width="2.5">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </div>
+                        <div class="sheet-title" id="sheet-title-text">新建世界观</div>
+                        <div class="sheet-save" onclick="saveWorld()">保存</div>
+                    </div>
+                    <div class="sheet-content">
+                        <div class="form-group">
+                            <label class="form-label">标题</label>
+                            <input type="text" class="form-input" id="input-title" placeholder="例如：赛博朋克2077">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">世界观描述</label>
+                            <textarea class="form-textarea" id="input-desc" placeholder="描述这个世界的规则、背景、氛围...（AI将基于此进行理解和扮演）"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">关键词 (用逗号分隔)</label>
+                            <input type="text" class="form-input" id="input-tags" placeholder="霓虹灯, 高科技, 低生活">
+                        </div>
+
+                        <div class="form-group" style="display: flex; align-items: center; justify-content: space-between;">
+                            <label class="form-label" style="margin-bottom: 0;">设为全局世界观</label>
+                            <label class="switch">
+                                <input type="checkbox" id="input-global">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // 默认数据
+        const defaultWorlds = [
+            {
+                id: 1,
+                title: "首尔雨夜",
+                desc: "一个永远下着微雨的现代都市，充满忧郁与浪漫的氛围。人们通过全息投影交流情感，咖啡馆里播放着Lo-Fi音乐。",
+                tags: ["现代", "忧郁", "浪漫"],
+                isGlobal: false
+            },
+            {
+                id: 2,
+                title: "星际学院",
+                desc: "位于银河系边缘的精英学府，学生们学习星图绘制与心灵感应。建筑风格融合了古典欧式与未来主义。",
+                tags: ["科幻", "校园", "超能力"],
+                isGlobal: false
+            }
+        ];
+
+        let worlds = [];
+        let editingId = null;
+
+        // 加载数据
+        function loadWorlds() {
+            const saved = localStorage.getItem('worldbook_data');
+            if (saved) {
+                try {
+                    worlds = JSON.parse(saved);
+                } catch(e) {
+                    worlds = defaultWorlds;
+                }
+            } else {
+                worlds = defaultWorlds;
+            }
+        }
+
+        // 保存数据
+        function saveWorldsToStorage() {
+            localStorage.setItem('worldbook_data', JSON.stringify(worlds));
+        }
+
+        function renderWorlds() {
+            const container = document.getElementById('world-list');
+            container.innerHTML = '';
+
+            if (worlds.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" stroke-width="1">
+                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                            </svg>
+                        </div>
+                        <div class="empty-text">暂无世界观设定<br>点击右下角添加</div>
+                    </div>
+                `;
+                return;
+            }
+
+            worlds.forEach(world => {
+                const card = document.createElement('div');
+                card.className = 'world-card';
+                // 点击卡片编辑
+                card.onclick = (e) => {
+                    if(e.target.closest('.action-btn-mini')) return;
+                    openSheet(world.id);
+                };
+                
+                const globalTag = world.isGlobal ? '<span class="tag global">全局</span>' : '';
+
+                card.innerHTML = `
+                    <div class="card-top">
+                        <div class="card-icon">
+                            ${getIconForTitle(world.title)}
+                        </div>
+                        <div class="card-actions">
+                            <div class="action-btn-mini delete" onclick="deleteWorld(${world.id})">
+                                <svg width="16" height="16" viewBox="0 0 24 24" stroke-width="2.5">
+                                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-title">${world.title}</div>
+                    <div class="card-desc">${world.desc}</div>
+                    <div class="card-tags">
+                        ${globalTag}
+                        ${world.tags.map(tag => `<span class="tag">#${tag}</span>`).join('')}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function deleteWorld(id) {
+            if(confirm('确定要删除这个世界观吗？')) {
+                worlds = worlds.filter(w => w.id !== id);
+                saveWorldsToStorage();
+                renderWorlds();
+            }
+        }
+
+        function getIconForTitle(title) {
+            if (title.includes('雨') || title.includes('海')) return '🌧️';
+            if (title.includes('星') || title.includes('宇')) return '🪐';
+            if (title.includes('魔') || title.includes('幻')) return '🔮';
+            if (title.includes('赛博') || title.includes('科技')) return '🤖';
+            if (title.includes('学') || title.includes('校')) return '🏫';
+            return '📖';
+        }
+
+        // 页面加载
+        window.addEventListener('load', () => {
+            document.body.classList.add('page-loaded');
+            loadWorlds();
+            updateTime();
+            renderWorlds();
+        });
+
+        // 时间更新
+        function updateTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.querySelector('.status-left').textContent = `${hours}:${minutes}`;
+        }
+        setInterval(updateTime, 1000);
+
+        // 导航
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        // Sheet 交互
+        function openSheet(id = null) {
+            document.getElementById('sheet-overlay').classList.add('active');
+            editingId = id;
+
+            if (id) {
+                const world = worlds.find(w => w.id === id);
+                if (world) {
+                    document.getElementById('sheet-title-text').textContent = '编辑世界观';
+                    document.getElementById('input-title').value = world.title;
+                    document.getElementById('input-desc').value = world.desc;
+                    document.getElementById('input-tags').value = world.tags.join(', ');
+                    document.getElementById('input-global').checked = !!world.isGlobal;
+                }
+            } else {
+                document.getElementById('sheet-title-text').textContent = '新建世界观';
+                document.getElementById('input-title').value = '';
+                document.getElementById('input-desc').value = '';
+                document.getElementById('input-tags').value = '';
+                document.getElementById('input-global').checked = false;
+            }
+        }
+
+        function closeSheet() {
+            document.getElementById('sheet-overlay').classList.remove('active');
+            editingId = null;
+        }
+
+        function saveWorld() {
+            const title = document.getElementById('input-title').value;
+            const desc = document.getElementById('input-desc').value;
+            const tagsStr = document.getElementById('input-tags').value;
+            const isGlobal = document.getElementById('input-global').checked;
+
+            if (!title || !desc) {
+                alert('请填写标题和描述');
+                return;
+            }
+
+            const tags = tagsStr.split(/[,，]/).map(t => t.trim()).filter(t => t);
+
+            // 如果设为全局，取消其他世界观的全局状态
+            if (isGlobal) {
+                worlds.forEach(w => w.isGlobal = false);
+            }
+
+            if (editingId) {
+                const index = worlds.findIndex(w => w.id === editingId);
+                if (index !== -1) {
+                    worlds[index] = { ...worlds[index], title, desc, tags, isGlobal };
+                }
+            } else {
+                const newWorld = {
+                    id: Date.now(),
+                    title: title,
+                    desc: desc,
+                    tags: tags,
+                    isGlobal: isGlobal
+                };
+                worlds.unshift(newWorld);
+            }
+
+            saveWorldsToStorage();
+            renderWorlds();
+            closeSheet();
+        }
+
+    </script>
+</body>
+</html>
